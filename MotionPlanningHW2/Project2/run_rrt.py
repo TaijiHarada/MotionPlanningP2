@@ -12,11 +12,11 @@ import time
 import vrepWrapper
 from rrt import *
 
-connect = True
-bidirection = True
-num_samples=5000
-problem = "vrep"
-#problem = './env0.txt'
+connect = False
+bidirection = False
+num_samples= 500
+# problem = "vrep"
+problem = './env0.txt'
 
 np.random.seed(0)
 
@@ -42,7 +42,7 @@ rrt = RRT(num_samples,
           collision_func=environment.test_collisions)
 if connect:
     plan = rrt.build_rrt_connect(environment.start, environment.goal)
-elif:
+elif bidirection:
     plan = rrt.build_bidirectional_rrt_connect(environment.start, environment.goal)
 else:
     plan = rrt.build_rrt(environment.start, environment.goal)
@@ -60,3 +60,4 @@ debugThing = environment.draw_plan(plan, rrt,True,True,True)
 if(problem == "vrep"):
     time.sleep(10)
     environment.vrepStop()
+

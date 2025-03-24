@@ -118,20 +118,22 @@ class RRT(object):
 
     def build_rrt(self, init, goal):
         '''
-        Build the rrt from init to goal
-        Returns path to goal or None
+        Build the RRT from init to goal.
+        Returns a path to goal or None if no path is found.
         '''
         self.goal = np.array(goal)
         self.init = np.array(init)
-        self.found_path = False
-
-        # Build tree and search
         self.T = RRTSearchTree(init)
 
-        # Sample and extend
-        raise NotImplementedError('Expand RRT tree and return plan')
+        for _ in range(self.K):
+            q_rand = self.sample()  # Sample a random point
+            status, new_node = self.extend(self.T, q_rand)
 
-        return None
+            if status == _REACHED and np.linalg.norm(new_node.state - self.goal) < self.epsilon:
+                self.found_path = True
+                return self.T.get_back_path(new_node)  # Return final path
+
+        return None  # No path found
 
     def build_rrt_connect(self, init, goal):
         '''
@@ -175,7 +177,10 @@ class RRT(object):
         Returns a configuration of size self.n bounded in self.limits
         '''
         # Return goal with connect_prob probability
-        raise NotImplementedError('Sample a new configuration, or return goal')
+        if random.random() < self.connect_prob:
+            return self.goal  # Bias towards goal
+
+        return np.array([random.uniform(self.limits[i, 0], self.limits[i, 1]) for i in range(self.n)])
 
     def extend(self, T, q):
         '''
@@ -184,7 +189,24 @@ class RRT(object):
         returns - tuple of (status, TreeNode)
            status can be: _TRAPPED, _ADVANCED or _REACHED
         '''
-        raise NotImplementedError('Extend the tree towards q')
+        nearest_node, _ = T.find_nearest(q)
+        direction = q - nearest_node.state
+        length = np.linalg.norm(direction)
+
+        if length > self.epsilon:
+            direction = (direction / length) * self.epsilon  # Move a fixed step size
+
+        q_new = nearest_node.state + direction
+
+        if not self.in_collision(q_new):  # Check for collision
+            new_node = TreeNode(q_new)
+            T.add_node(new_node, nearest_node)
+
+            if np.linalg.norm(q_new - q) < self.epsilon:
+                return _REACHED, new_node
+            return _ADVANCED, new_node
+
+        return _TRAPPED, None
 
     def fake_in_collision(self, q):
         '''
