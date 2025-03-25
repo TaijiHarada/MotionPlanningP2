@@ -9,7 +9,7 @@ from collisions import PolygonEnvironment
 import time
 import random
 
-_DEBUG = False
+_DEBUG = True
 
 _TRAPPED = 'trapped'
 _ADVANCED = 'advanced'
@@ -96,9 +96,15 @@ class RRT(object):
         '''
         Initialize an RRT planning instance
         '''
+        # Samples to generate
         self.K = num_samples
+        
         self.n = num_dimensions
+        
         self.epsilon = step_length
+        '''
+        Bias Towards Goal
+        '''
         self.connect_prob = connect_prob
 
         self.in_collision = collision_func
@@ -107,6 +113,7 @@ class RRT(object):
 
         # Setup range limits
         self.limits = lims
+        # If limits are not provided, provide defaults.
         if self.limits is None:
             self.limits = []
             for n in range(num_dimensions):
@@ -123,10 +130,18 @@ class RRT(object):
         '''
         self.goal = np.array(goal)
         self.init = np.array(init)
+
+        # Build tree and search
         self.T = RRTSearchTree(init)
 
+        # Sample and extend
+        # Loop through the number of samples
+        if _DEBUG:
+            print('Test Sample:', self.sample())
         for _ in range(self.K):
-            q_rand = self.sample()  # Sample a random point
+            # Sample a random point
+            q_rand = self.sample()  
+            # Get Status of extend(reached, advanced, or trapped)
             status, new_node = self.extend(self.T, q_rand)
 
             if status == _REACHED and np.linalg.norm(new_node.state - self.goal) < self.epsilon:
@@ -176,11 +191,18 @@ class RRT(object):
         Sample a new configuration
         Returns a configuration of size self.n bounded in self.limits
         '''
-        # Return goal with connect_prob probability
+        # Return goal with a connect_prob probability.  I.e if connect_prob is 5 %, return goal 5% of the time.
         if random.random() < self.connect_prob:
             return self.goal  # Bias towards goal
 
-        return np.array([random.uniform(self.limits[i, 0], self.limits[i, 1]) for i in range(self.n)])
+        # Return a sample within the limits of each dimension.
+        samples = []
+        for i in range(self.n):
+            lower_bound = self.limits[i, 0]
+            upper_bound = self.limits[i, 1]
+            sample = random.uniform(lower_bound, upper_bound)
+            samples.append(sample)
+        return np.array(samples)
 
     def extend(self, T, q):
         '''
@@ -188,25 +210,59 @@ class RRT(object):
         q - new configuration to extend towards
         returns - tuple of (status, TreeNode)
            status can be: _TRAPPED, _ADVANCED or _REACHED
+
+        Self notes: selects the nearest vertex already in the
+        RRT to the given sample configuration
         '''
-        nearest_node, _ = T.find_nearest(q)
-        direction = q - nearest_node.state
-        length = np.linalg.norm(direction)
+        # Kuffner psuodocode
+        #         EXTEND(T , q)
+        # 1 qnear ← NEAREST NEIGHBOR(q, T );
+        # 2 if NEW CONFIG(q, qnear , qnew ) then
+            # 3 T .add vertex(qnew );
+            # 4 T .add edge(qnear , qnew );
+            # 5 if qnew = q then
+            # 6 Return Reached;
+        # 7 else
+            # 8 Return Advanced;
+        # 9 Return Trapped;
 
-        if length > self.epsilon:
-            direction = (direction / length) * self.epsilon  # Move a fixed step size
+        # Kuffner statuses Three situations can occur:
+        # Reached, in which q is directly added to the RRT be-
+        # cause it already contains a vertex within eplilon of q; Ad-
+        # vanced, in which a new vertex qnew does not equal q is added to
+        # the RRT; Trapped, in which the proposed new vertex
+        # is rejected because it does not lie in Cfree
 
+        nearest_node, distToNearestNode = T.find_nearest(q)
+        # Direction vector from nearest node to the sample/(new configuration)
+        direction = q - nearest_node.state # nearest_node.state is getting the value at nearest node.  Not to be confused with status.
+        
+        # length = np.linalg.norm(direction)
+        # if _DEBUG:
+        #     print('distToNearestNode', distToNearestNode)
+        #     print('length', length)
+
+        # Move a fixed step size.  Limit step length
+        if distToNearestNode > self.epsilon:
+            unitVector = (direction / distToNearestNode)
+            direction = unitVector * self.epsilon 
+        # Coordinate position 
         q_new = nearest_node.state + direction
 
-        if not self.in_collision(q_new):  # Check for collision
+        # Check for collision
+        if not self.in_collision(q_new):  
             new_node = TreeNode(q_new)
+
+            # add_node(newNode, parent)
             T.add_node(new_node, nearest_node)
 
-            if np.linalg.norm(q_new - q) < self.epsilon:
+            # Check if the sampled node was reached within epsilon, then return status.
+            if distToNearestNode < self.epsilon:
                 return _REACHED, new_node
-            return _ADVANCED, new_node
-
-        return _TRAPPED, None
+            else:
+                return _ADVANCED, new_node
+        else:
+            return _TRAPPED, None
 
     def fake_in_collision(self, q):
         '''

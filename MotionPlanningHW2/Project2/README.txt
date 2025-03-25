@@ -1,0 +1,2 @@
+Lots of my implementations were inspired by this text book and other online resources:
+LaValle, S. M. (2006). Planning Algorithms. Cambridge University Press. Planning Algorithms. https://msl.cs.uiuc.edu/planning/bookbig.pdf

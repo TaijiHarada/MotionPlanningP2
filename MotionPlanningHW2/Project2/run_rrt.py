@@ -12,11 +12,12 @@ import time
 import vrepWrapper
 from rrt import *
 
+DEBUG = True
 connect = False
 bidirection = False
 num_samples= 500
 # problem = "vrep"
-problem = './env0.txt'
+problem = './project2/env0.txt'
 
 np.random.seed(0)
 
@@ -30,7 +31,7 @@ else:
     step_length=2
 
 
-
+# Get the number of dimensions from the start position.
 dims = len(environment.start)
 start_time = time.time()
 
@@ -45,6 +46,10 @@ if connect:
 elif bidirection:
     plan = rrt.build_bidirectional_rrt_connect(environment.start, environment.goal)
 else:
+    if DEBUG:
+        print('start:', environment.start)
+        print('goal:', environment.goal)
+
     plan = rrt.build_rrt(environment.start, environment.goal)
 
 #if(problem == "vrep"):
@@ -54,6 +59,7 @@ run_time = time.time() - start_time
 print('plan:', plan)
 print('run_time =', run_time)
 
+# Params draw_plan(self, plan, planner, dynamic_tree=False, dynamic_plan=True, show=True): IDK what 3rd True paramater does.
 debugThing = environment.draw_plan(plan, rrt,True,True,True)
 
 
