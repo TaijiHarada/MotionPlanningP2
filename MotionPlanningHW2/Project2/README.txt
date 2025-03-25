@@ -28,8 +28,11 @@ I believe changing parameters should be pretty self evident as the code uses the
 
 
 # Issues
+- For rrt_connect, it only shows the branching from one tree.
 
 
-
+References
 Lots of my implementations were inspired by this text book and other online resources:
 LaValle, S. M. (2006). Planning Algorithms. Cambridge University Press. Planning Algorithms. https://msl.cs.uiuc.edu/planning/bookbig.pdf
+
+I also used chatGPT to help give me an understanding, but I did not directly copy generated code for my final solutions.

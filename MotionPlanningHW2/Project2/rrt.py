@@ -211,35 +211,33 @@ class RRT(object):
 
             # Extend T_start towards q_rand to determine status before continuing to connect.
             status, new_node_start = self.extend(T_start, q_rand)
+            # Just copy action into self tree
+            _, _ = self.extend(self.T, q_rand)
             if status != _TRAPPED:
                 # See if the two trees are able to directly connect
                 status, new_node_goal = self.connect(T_goal, new_node_start.state)
+                # Just copy action into self tree
+                _, _ = self.connect(self.T, new_node_start.state)
+
                 if status == _REACHED:
                     # Try to connect T_goal to the new node from T_start
                     self.found_path = True
                     path_start = T_start.get_back_path(new_node_start)
                     path_goal = T_goal.get_back_path(new_node_goal)
-                    if _DEBUG:
-                        print('path_start:', path_start)
-                        print('path_goal:', path_goal)
+                    # if _DEBUG:
+                    #     print('path_start:', path_start)
+                    #     print('path_goal:', path_goal)
                     # Combine paths with the goal path reversed
                     path_combined = path_start + path_goal[::-1]  
 
-                    # # Add path to self tree
-                    # for i in lengthOfPathCombinded
-                    #     parent_node = TreeNode(path_combined[i])
-                    #     child_node = TreeNode(path_combined[i+1])
+                    
+                    # Add final path to self tree
+                    # for i in range(len(path_combined) - 1):  # Iterate over indices of path_combined, excluding the last one
+                    #     parent_node = TreeNode(path_combined[i])  
+                    #     child_node = TreeNode(path_combined[i + 1]) 
 
-                    #     # add_node(newNode, parent)
+                    #     # Add the child node to the tree, using parent_node as its parent
                     #     self.T.add_node(child_node, parent_node)
-
-                    # Add path to self tree
-                    for i in range(len(path_combined) - 1):  # Iterate over indices of path_combined, excluding the last one
-                        parent_node = TreeNode(path_combined[i])  # Create a TreeNode for the current node
-                        child_node = TreeNode(path_combined[i + 1])  # Create a TreeNode for the next node
-
-                        # Add the child node to the tree, using parent_node as its parent
-                        self.T.add_node(child_node, parent_node)
                     return path_combined
 
             # Swap trees, then continue expanding with swapped roles.

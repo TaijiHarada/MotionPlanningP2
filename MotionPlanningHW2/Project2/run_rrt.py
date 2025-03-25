@@ -17,7 +17,7 @@ connect = True
 bidirection = False
 num_samples= 10000
 # problem = "vrep"
-problem = './project2/env0.txt'
+problem = './project2/env1.txt'
 
 np.random.seed(0)
 
@@ -28,7 +28,7 @@ if(problem == "vrep"):
 else:
     environment = PolygonEnvironment()
     environment.read_env(problem)
-    step_length=2
+    step_length=0.15
 
 
 # Get the number of dimensions from the start position.
@@ -61,7 +61,7 @@ print('plan:', plan)
 print('run_time =', run_time)
 
 # Params draw_plan(self, plan, planner, dynamic_tree=False, dynamic_plan=True, show=True): IDK what 3rd True paramater does.
-debugThing = environment.draw_plan(plan, rrt,True,True,True)
+debugThing = environment.draw_plan(plan, rrt,False,False,True)
 
 
 if(problem == "vrep"):
