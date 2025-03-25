@@ -139,33 +139,116 @@ class RRT(object):
         if _DEBUG:
             print('Test Sample:', self.sample())
         for _ in range(self.K):
-            # Sample a random point
+            # Sample a random point with built in probability to be towards goal
             q_rand = self.sample()  
             # Get Status of extend(reached, advanced, or trapped)
             status, new_node = self.extend(self.T, q_rand)
 
             if status == _REACHED and np.linalg.norm(new_node.state - self.goal) < self.epsilon:
                 self.found_path = True
-                return self.T.get_back_path(new_node)  # Return final path
+                # Return final path from root to new_node (new_node is goal)
+                return self.T.get_back_path(new_node)  
+            
+        # No path found in the number of samples
+        return None  
+    
+    def connect(self, T, q):
+        '''
+        Perform rrt connect operation. Try to extend as much as possible
+        q - new configuration to extend towards
+        returns - tuple of (status, TreeNode)
+           status can be: _TRAPPED, _ADVANCED or _REACHED
 
-        return None  # No path found
+        Self notes: selects the nearest vertex already in the
+        RRT to the given sample configuration
+        '''
+        # Kuffner pseudo code
+        #         CONNECT(T , q)
+        # 1 repeat
+            # 2 S ← EXTEND(T , q);
+        # 3 until not (S = Advanced)
+        # 4 Return S;
+
+        # set status to advanced to allow looping.
+        status = _ADVANCED
+        last_node = None
+
+        while status == _ADVANCED:
+            status, last_node = self.extend(T, q)
+        return status, last_node
+
 
     def build_rrt_connect(self, init, goal):
         '''
         Build the rrt connect from init to goal
         Returns path to goal or None
         '''
+        # Kuffner pseudo code
+
+        # RRT CONNECT PLANNER(qinit, qgoal)
+        # 1 Ta.init(qinit); Tb.init(qgoal);
+        # 2 for k = 1 to K do
+            # 3 qrand ← RANDOM CONFIG();
+            # 4 if not (EXTEND(Ta, qrand) =Trapped) then
+                # 5 if (CONNECT(Tb, qnew ) =Reached) then
+                    # 6 Return PATH(Ta, Tb);
+            # 7 SWAP(Ta, Tb);
+        # 8 Return Failure
+
         self.goal = np.array(goal)
         self.init = np.array(init)
         self.found_path = False
 
-        # Build tree and search
         self.T = RRTSearchTree(init)
 
-        # Sample and extend
-        raise NotImplementedError('Expand RRT tree and return plan')
+        # Initialize two trees, one at start and the other at goal
+        T_start = RRTSearchTree(init)
+        T_goal = RRTSearchTree(goal)
 
-        return None
+        for _ in range(self.K):
+            # Sample a random point with built in probability to be towards goal
+            q_rand = self.sample()
+
+            # Extend T_start towards q_rand to determine status before continuing to connect.
+            status, new_node_start = self.extend(T_start, q_rand)
+            if status != _TRAPPED:
+                # See if the two trees are able to directly connect
+                status, new_node_goal = self.connect(T_goal, new_node_start.state)
+                if status == _REACHED:
+                    # Try to connect T_goal to the new node from T_start
+                    self.found_path = True
+                    path_start = T_start.get_back_path(new_node_start)
+                    path_goal = T_goal.get_back_path(new_node_goal)
+                    if _DEBUG:
+                        print('path_start:', path_start)
+                        print('path_goal:', path_goal)
+                    # Combine paths with the goal path reversed
+                    path_combined = path_start + path_goal[::-1]  
+
+                    # # Add path to self tree
+                    # for i in lengthOfPathCombinded
+                    #     parent_node = TreeNode(path_combined[i])
+                    #     child_node = TreeNode(path_combined[i+1])
+
+                    #     # add_node(newNode, parent)
+                    #     self.T.add_node(child_node, parent_node)
+
+                    # Add path to self tree
+                    for i in range(len(path_combined) - 1):  # Iterate over indices of path_combined, excluding the last one
+                        parent_node = TreeNode(path_combined[i])  # Create a TreeNode for the current node
+                        child_node = TreeNode(path_combined[i + 1])  # Create a TreeNode for the next node
+
+                        # Add the child node to the tree, using parent_node as its parent
+                        self.T.add_node(child_node, parent_node)
+                    return path_combined
+
+            # Swap trees, then continue expanding with swapped roles.
+            T_goal_copy = T_goal
+            T_goal = T_start
+            T_start = T_goal_copy
+
+        # No path found in the number of samples
+        return None  
 
     def build_bidirectional_rrt_connect(self, init, goal):
         '''

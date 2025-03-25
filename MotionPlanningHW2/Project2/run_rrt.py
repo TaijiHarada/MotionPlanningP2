@@ -13,9 +13,9 @@ import vrepWrapper
 from rrt import *
 
 DEBUG = True
-connect = False
+connect = True
 bidirection = False
-num_samples= 500
+num_samples= 10000
 # problem = "vrep"
 problem = './project2/env0.txt'
 
@@ -35,6 +35,7 @@ else:
 dims = len(environment.start)
 start_time = time.time()
 
+# last RRT Paramater is collision detection.  Leave blank if you don't want any.
 rrt = RRT(num_samples,
           dims,
           step_length,
