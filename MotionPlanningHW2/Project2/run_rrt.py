@@ -12,12 +12,13 @@ import time
 import vrepWrapper
 from rrt import *
 
+
 DEBUG = True
-connect = True
+connect = False
 bidirection = False
 num_samples= 10000
-# problem = "vrep"
-problem = './project2/env1.txt'
+problem = "vrep"
+# problem = './project2/env1.txt'
 
 np.random.seed(0)
 
@@ -53,8 +54,8 @@ else:
 
     plan = rrt.build_rrt(environment.start, environment.goal)
 
-#if(problem == "vrep"):
-#    environment.vrepReset()
+if(problem == "vrep"):
+   environment.vrepReset()
 
 run_time = time.time() - start_time
 print('plan:', plan)

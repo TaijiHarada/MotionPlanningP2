@@ -178,7 +178,7 @@ class RRT(object):
         return status, last_node
 
 
-    def build_rrt_connect(self, init, goal):
+    def build_bidirectional_rrt_connect(self, init, goal):
         '''
         Build the rrt connect from init to goal
         Returns path to goal or None
@@ -248,24 +248,36 @@ class RRT(object):
         # No path found in the number of samples
         return None  
 
-    def build_bidirectional_rrt_connect(self, init, goal):
+    def build_rrt_connect(self, init, goal):
         '''
+        I had to swap connect and bidirectional because I made them in the wrong order.
         Build two rrt connect trees from init and goal
         Growing towards each oter
         Returns path to goal or None
         '''
         self.goal = np.array(goal)
         self.init = np.array(init)
-        self.found_path = False
 
-        # Build trees and search
-        self.T_init = RRTSearchTree(init)
-        self.T_goal = RRTSearchTree(goal)
+        # Build tree and search
+        self.T = RRTSearchTree(init)
 
         # Sample and extend
-        raise NotImplementedError('Expand RRT trees and return plan')
+        # Loop through the number of samples
+        if _DEBUG:
+            print('Test Sample:', self.sample())
+        for _ in range(self.K):
+            # Sample a random point with built in probability to be towards goal
+            q_rand = self.sample()  
+            # Get Status of extend(reached, advanced, or trapped)
+            status, new_node = self.connect(self.T, q_rand)
 
-        return None
+            if status == _REACHED and np.linalg.norm(new_node.state - self.goal) < self.epsilon:
+                self.found_path = True
+                # Return final path from root to new_node (new_node is goal)
+                return self.T.get_back_path(new_node)  
+            
+        # No path found in the number of samples
+        return None  
 
     def sample(self):
         '''
